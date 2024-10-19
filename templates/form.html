@@ -1,0 +1,463 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Form</title>
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+   
+    <script>   
+        function addItemRow() {
+            var itemCount = parseInt(document.getElementById('item_count').value);
+            itemCount++;
+            document.getElementById('item_count').value = itemCount;
+
+            var itemFormHtml = document.querySelector('.item-form-template').innerHTML.replace(/item_0/g, 'item_' + itemCount);
+            var container = document.getElementById('item-forms');
+            container.insertAdjacentHTML('beforeend', itemFormHtml);
+            itemCount++
+            document.getElementById('item_0').value = itemCount;
+        
+        }
+
+        function calculateTotals() {
+            var rows = document.querySelectorAll('.item-form');
+            var total = 0;
+            var total_sgst = 0;
+            var total_cgst = 0;
+            var total_gst =0;
+
+
+            // Clear previous calculations
+            document.querySelectorAll('.item-total').forEach(el => el.innerText = '0.00');
+            document.querySelectorAll('.item-sgst').forEach(el => el.innerText = '0.00');
+            document.querySelectorAll('.item-cgst').forEach(el => el.innerText = '0.00');
+            document.querySelectorAll('.item-grand-total').forEach(el => el.innerText = '0.00');
+
+            rows.forEach(function(row) {
+                var qty = parseFloat(row.querySelector('[name$=qty]').value) || 0;
+                var rate = parseFloat(row.querySelector('[name$=rate]').value) || 0;
+    
+                var gst_rate = parseFloat(row.querySelector('[name$=gst_rate]').value) || 0;
+                var sgst = (gst_rate / 2); // Assuming SGST and CGST are equal for simplicity
+                var cgst = sgst;
+
+                var amtotal = qty * rate;
+                var row_total_sgst = (sgst / 100) * amtotal;
+                var row_total_cgst = (cgst / 100) * amtotal;
+                var row_total = amtotal + row_total_sgst + row_total_cgst;
+                var gst=row_total_sgst + row_total_cgst;
+
+                row.querySelector('.item-total').innerText = amtotal.toFixed(2);
+                row.querySelector('.item-sgst').innerText = sgst.toFixed(2);
+                row.querySelector('.item-cgst').innerText = cgst.toFixed(2);
+                row.querySelector('.item-grand-total').innerText = row_total.toFixed(2);
+               // row.querySelector('.item-sgst').innerText = gst.toFixed(2);
+
+                total += amtotal + row_total_sgst + row_total_cgst;
+                total_sgst += sgst;
+                total_cgst += cgst;
+                 total_gst+=row_total_sgst + row_total_cgst;
+            });
+
+            document.getElementById('total').innerText = 'Total:' + total.toFixed(2);
+            document.getElementById('total_sgst').innerText;
+            document.getElementById('total_cgst').innerText;
+           // document.getElementById('total_gst').innerText;
+        }
+        function displayImage(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('logo-preview');
+            
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                
+                reader.readAsDataURL(file);
+            } else {
+                preview.src = '';
+                preview.style.display = 'none';
+            }
+        }
+        function printPDF(invoiceId) {
+            const url = "{% url 'generate_pdf' '__invoice_id__' %}".replace('__invoice_id__', invoiceId);
+            const printWindow = window.open(url, '_blank');
+            printWindow.onload = function() {
+                printWindow.print();
+            };
+        }
+        function downloadPDF() {
+            const invoiceId = "{{ invoice_id }}";  // Ensure the invoice ID is available
+            if (invoiceId) {
+                window.location.href = `/pdf/${invoiceId}/`;
+            } else {
+                alert('No invoice ID available to download PDF.');
+            }
+        }
+        function removeItemRow(button) {
+            var row = button.closest('tr');
+            var hiddenInput = row.querySelector('input[type="hidden"]');
+            
+            // Mark the row for removal
+            hiddenInput.value = "1"; // or true, based on your preference
+            
+            // Hide the row instead of removing it
+            row.style.display = 'none';
+            
+        }
+        function validateTextLength(input) {
+            const maxLength = input.getAttribute('maxlength');
+            const currentLength = input.value.length;
+    
+            if (currentLength >= maxLength) {
+                input.classList.add('is-invalid'); // Add invalid class
+            } else {
+                input.classList.remove('is-invalid'); // Remove invalid class
+            }
+        }
+    
+        // Attach event listeners to input fields
+        document.querySelectorAll('input[type="text"]').forEach(input => {
+            input.addEventListener('input', function() {
+                validateTextLength(this);
+            });
+        });
+          
+    </script>
+    
+</head>
+<body >
+    <a class="btn btn-secondary" href="{% url 'user_dashboard' %}">Back to Menu</a>
+    <div class="container mt-4">
+        <form method="post" action="{% url 'form_view' %}" enctype="multipart/form-data">
+            {% csrf_token %}   
+            <div id="error-messages" class="alert alert-danger" style="display: none;"></div>   
+            <div class="form-group ">
+                <div class="form-group" style="display: flex; align-items: center;">
+            <div class="upload-container" >
+                <i class="fas fa-cloud-upload-alt upload-icon"></i> 
+                
+                <span class="upload-text">Upload</span>
+                <input type="file" name="logo" id="logo-upload" accept="image/*" onchange="displayImage(event)">              
+                <img id="logo-preview" src="#" alt=""> 
+            </div>
+        
+            <h1 style="margin: 0; white-space: nowrap; margin-left:550px;">TAX INVOICE</h1> 
+                    {% comment %} <input type="file" name="logo" style="margin-right: 5px;" / >Upload logo
+                    <h1 style="margin: 0; white-space: nowrap; margin-left:350px;">TAX INVOICE</h1> {% endcomment %}
+                </div>
+                <br>
+                <!-- Company -->
+                <div class="form-group" style="margin:0;">
+                    <input type="text" name="company" class="form-control" placeholder=" Company Name" value="{{ form_data.company.value|default_if_none:'' }}"  style="width: 23.5%; height: 25px; margin-bottom: 0.15rem; border: 0.5px solid transparent; border:none; box-shadow: none;" maxlength="25"/>
+                </div>
+                <!-- Your Name -->
+                <div class="form-group" style="margin:0;" >
+                    <input type="text" name="your_name" class="form-control" placeholder=" Your Name" value="{{ form_data.your_name.value|default_if_none:'' }}" style="width:23.5%; height: 25px; margin-bottom: 0.15rem; border: 0.5px solid transparent;border:none; box-shadow: none;" maxlength="25"/>
+                </div>
+                <!-- Company GSTIN -->
+                <div class="form-group" style="margin:0;">
+                    <input type="text" name="company_gstin" class="form-control" placeholder=" Company GSTIN" value="{{ form_data.company_gstin.value|default_if_none:'' }}" style="width: 25.5%; height: 25px; margin-bottom: 0.15rem; border: 0.5px solid transparent;border:none; box-shadow: none;" maxlength="25"/>
+                </div>
+                <!-- Company Address -->
+                <div class="form-group" style="margin:0;">
+                    <input type="text" name="company_address" class="form-control" placeholder=" Company Address" value="{{ form_data.company_address.value|default_if_none:'' }}" style="width: 25.5%; height: 25px; margin-bottom: 0.15rem; border: 0.5px solid transparent;border:none; box-shadow: none;" maxlength="25"/>
+                </div>
+                <!-- City -->
+                <div class="form-group" style="margin:0">
+                    <!-- <input type="text" name="city" class="form-control" placeholder=" City" value="{{ form_data.city.value|default_if_none:'' }}" style="width: 23.5%; height: 21px; margin-bottom: 0.15rem; border: 0.5px solid transparent;"/> -->
+                    <select name="city" class="form-control" style="width: 23.5%; height: 27px; padding: 2px; line-height: 1.5; border: 0.5px solid transparent; box-shadow: none;">
+                        <option value="">City</option>
+                        <!-- Add more options as needed -->
+                        <option value="New York" {% if form_data.city.value == 'New York' %}selected{% endif %}>New York</option>
+                        <option value="Los Angeles" {% if form_data.city.value == 'Los Angeles' %}selected{% endif %}>Los Angeles</option>
+                        <option value="Chicago" {% if form_data.city.value == 'Chicago' %}selected{% endif %}>Chicago</option>
+                        <option value="Houston" {% if form_data.city.value == 'Houston' %}selected{% endif %}>Houston</option>
+                        <option value="Pune" {% if form_data.city.value == 'Pune' %}selected{% endif %}>Pune</option>
+                        <option value="Delhi" {% if form_data.city.value == 'Delhi' %}selected{% endif %}>Delhi</option>
+                        <option value="Mumbai" {% if form_data.city.value == 'Mumbai' %}selected{% endif %}>Mumbai</option>
+                        <option value="Phoenix" {% if form_data.city.value == 'Phoenix' %}selected{% endif %}>Phoenix</option>
+                        <option value="Philadelphia" {% if form_data.city.value == 'Philadelphia' %}selected{% endif %}>Philadelphia</option>
+                        <option value="San Antonio" {% if form_data.city.value == 'San Antonio' %}selected{% endif %}>San Antonio</option>
+                        <option value="San Diego" {% if form_data.city.value == 'San Diego' %}selected{% endif %}>San Diego</option>
+                        <option value="Dallas" {% if form_data.city.value == 'Dallas' %}selected{% endif %}>Dallas</option>
+                    </select>   
+                </div>
+                <!-- State -->
+                <div class="form-group"style="margin:0;">
+                    <!-- <input type="text" name="state" class="form-control" placeholder=" State" value="{{ form_data.state.value|default_if_none:'' }}" style=" width: 23.5%; height: 21px; margin-bottom: 0.15rem; border: 0.5px solid transparent;"/> -->
+                    <select name="state" class="form-control" style="width: 23.5%; height: 27px; padding: 2px; line-height: 1.5; border: 0.5px solid transparent;box-shadow: none;">
+                        <option value=""> State</option>
+                        <!-- Add more options as needed -->
+                        <option value="California" {% if form_data.state.value == 'California' %}selected{% endif %}>California</option>
+                        <option value="New York" {% if form_data.state.value == 'New York' %}selected{% endif %}>New York</option>
+                        <option value="Texas" {% if form_data.state.value == 'Texas' %}selected{% endif %}>Texas</option>
+        <option value="Florida" {% if form_data.state.value == 'Florida' %}selected{% endif %}>Florida</option>
+        <option value="Maharashtra" {% if form_data.state.value == 'Maharashtra' %}selected{% endif %}>Maharashtra</option>
+        <option value="Illinois" {% if form_data.state.value == 'Illinois' %}selected{% endif %}>Illinois</option>
+        <option value="Pennsylvania" {% if form_data.state.value == 'Pennsylvania' %}selected{% endif %}>Pennsylvania</option>
+        <option value="Ohio" {% if form_data.state.value == 'Ohio' %}selected{% endif %}>Ohio</option>
+        <option value="Georgia" {% if form_data.state.value == 'Georgia' %}selected{% endif %}>Georgia</option>
+                    </select>
+                </div>
+                <!-- Country -->
+                <div class="form-group" style="margin:0;">
+                    <!-- <input type="text" name="country" class="form-control" placeholder=" Country" value="{{ form_data.country.value|default_if_none:'' }}" style=" width: 23.5%; height: 21px; margin-bottom: 0.17rem; border: 0.5px solid transparent;"/> -->
+                    <select name="country" class="form-control" style="width: 23.5%; height: 27px; padding: 2px; line-height: 1.5; border: 0.5px solid transparent; box-shadow: none;">
+                        <option value="">Country</option>
+                        <!-- Add more options as needed -->
+                        <option value="USA" {% if form_data.country.value == 'USA' %}selected{% endif %}>USA</option>
+                        <option value="Canada" {% if form_data.country.value == 'Canada' %}selected{% endif %}>Canada</option>
+                        <option value="Mexico" {% if form_data.country.value == 'Mexico' %}selected{% endif %}>Mexico</option>
+                        <option value="India" {% if form_data.country.value == 'India' %}selected{% endif %}>India</option>
+                        <option value="United Kingdom" {% if form_data.country.value == 'United Kingdom' %}selected{% endif %}>United Kingdom</option>
+                        <option value="Australia" {% if form_data.country.value == 'Australia' %}selected{% endif %}>Australia</option>
+                        <option value="Germany" {% if form_data.country.value == 'Germany' %}selected{% endif %}>Germany</option>
+                        <option value="France" {% if form_data.country.value == 'France' %}selected{% endif %}>France</option>
+                        <option value="China" {% if form_data.country.value == 'China' %}selected{% endif %}>China</option>
+                    </select>
+                </div>
+                <br>
+                <!-- Client Company -->
+                 <h6 style="margin-left:12px;">Bill To:</h6>
+                 <br>
+                 <div class="row">
+                    <!-- First Column -->
+                    <div class="col-md-6">
+                        <!-- Client Company -->
+                        <div class="form-group" style="margin:0;">
+                            <input type="text" name="client_company" class="form-control" placeholder="Client Company" value="{{ form_data.client_company.value|default_if_none:'' }}" style=" width: 48.5%; height: 25px; margin-bottom: 0.1rem;border: 0.5px solid transparent;box-shadow: none;" maxlength="25"  />
+                        </div>
+                        <!-- Client GSTIN -->
+                        <div class="form-group" style="margin:0;">
+                            <input type="text" name="client_gstin" class="form-control" placeholder="Client GSTIN" value="{{ form_data.client_gstin.value|default_if_none:'' }}" style=" width: 48.5%; height: 25px;margin-bottom: 0.1;border: 0.5px solid transparent;box-shadow: none;" maxlength="25"/>
+                        </div>
+                        <!-- Client Address -->
+                        <div class="form-group" style="margin:0;">
+                            <input type="text" name="client_address" class="form-control" placeholder="Client Address" value="{{ form_data.client_address.value|default_if_none:'' }}" style=" width: 48.5%; height: 25px; border: 0.5px solid transparent;box-shadow: none;" maxlength="25"/>
+                        </div>
+                        <!-- Client City -->
+                        <div class="form-group" style="margin:0;">
+                            <!-- <input type="text" name="client_city" class="form-control" placeholder="Client City" value="{{ form_data.client_city.value|default_if_none:'' }}"style=" width: 48.5%; height: 21px; border: 0.5px solid transparent;"/> -->
+                            <select name="client_city" class="form-control" style="width: 48.5%; height: 27px; padding: 2px; line-height: 1.5; border: 0.5px solid transparent;box-shadow: none;">
+                                <option value="">City</option>
+                                <!-- Add more options as needed -->
+                                <option value="Chicago" {% if form_data.client_city.value == 'Chicago' %}selected{% endif %}>Chicago</option>
+                                <option value="Houston" {% if form_data.client_city.value == 'Houston' %}selected{% endif %}>Houston</option>
+                                <option value="Chicago" {% if form_data.city.value == 'Chicago' %}selected{% endif %}>Chicago</option>
+                                <option value="Houston" {% if form_data.city.value == 'Houston' %}selected{% endif %}>Houston</option>
+                                <option value="Pune" {% if form_data.city.value == 'Pune' %}selected{% endif %}>Pune</option>
+                                <option value="Delhi" {% if form_data.city.value == 'Delhi' %}selected{% endif %}>Delhi</option>
+                                <option value="Mumbai" {% if form_data.city.value == 'Mumbai' %}selected{% endif %}>Mumbai</option>
+                                <option value="Phoenix" {% if form_data.city.value == 'Phoenix' %}selected{% endif %}>Phoenix</option>
+                                <option value="Philadelphia" {% if form_data.city.value == 'Philadelphia' %}selected{% endif %}>Philadelphia</option>
+                                <option value="San Antonio" {% if form_data.city.value == 'San Antonio' %}selected{% endif %}>San Antonio</option>
+                                <option value="San Diego" {% if form_data.city.value == 'San Diego' %}selected{% endif %}>San Diego</option>
+                                <option value="Dallas" {% if form_data.city.value == 'Dallas' %}selected{% endif %}>Dallas</option>
+                            </select>
+                        </div>
+                        <!-- Client State -->
+                        <div class="form-group"style="margin:0;">
+                            <!-- <input type="text" name="client_state" class="form-control" placeholder="Client Country" value="{{ form_data.client_state.value|default_if_none:'' }}" style=" width: 48.5%; height: 21px;border: 0.5px solid transparent;" /> -->
+                            <select name="client_state" class="form-control" style="width: 48.5%; height: 27px; padding: 2px; line-height: 1.5; border: 0.5px solid transparent;box-shadow: none;">
+                                <option value="">State</option>
+                                <!-- Add more options as needed -->
+                                <option value="Texas" {% if form_data.client_state.value == 'Texas' %}selected{% endif %}>Texas</option>
+                                <option value="Illinois" {% if form_data.client_state.value == 'Illinois' %}selected{% endif %}>Illinois</option>
+                            <option value="Texas" {% if form_data.state.value == 'Texas' %}selected{% endif %}>Texas</option>
+                            <option value="Florida" {% if form_data.state.value == 'Florida' %}selected{% endif %}>Florida</option>
+                            <option value="Maharashtra" {% if form_data.state.value == 'Maharashtra' %}selected{% endif %}>Maharashtra</option>
+                            <option value="Illinois" {% if form_data.state.value == 'Illinois' %}selected{% endif %}>Illinois</option>
+                            <option value="Pennsylvania" {% if form_data.state.value == 'Pennsylvania' %}selected{% endif %}>Pennsylvania</option>
+                            <option value="Ohio" {% if form_data.state.value == 'Ohio' %}selected{% endif %}>Ohio</option>
+                            <option value="Georgia" {% if form_data.state.value == 'Georgia' %}selected{% endif %}>Georgia</option>
+                            </select>
+                        </div>
+                        <!-- Client Country -->
+                        <div class="form-group" style="margin:0;">
+                            <!-- <input type="text" name="client_country" class="form-control" placeholder="Place Of Supply" value="{{ form_data.client_country.value|default_if_none:'' }}" style=" width: 48.5%; height: 21px;border: 0.5px solid transparent;"/> -->
+                            <select name="client_country" class="form-control" style="width: 48.5%; height: 27px; padding: 2px; line-height: 1.5; border: 0.5px solid transparent;box-shadow: none;">
+                                <option value="">Country</option>
+                                <!-- Add more options as needed -->
+                                <option value="USA" {% if form_data.client_country.value == 'USA' %}selected{% endif %}>USA</option>
+                                <option value="Canada" {% if form_data.client_country.value == 'Canada' %}selected{% endif %}>Canada</option>
+                                <option value="Mexico" {% if form_data.country.value == 'Mexico' %}selected{% endif %}>Mexico</option>
+                                <option value="India" {% if form_data.country.value == 'India' %}selected{% endif %}>India</option>
+                                <option value="United Kingdom" {% if form_data.country.value == 'United Kingdom' %}selected{% endif %}>United Kingdom</option>
+                                <option value="Australia" {% if form_data.country.value == 'Australia' %}selected{% endif %}>Australia</option>
+                                <option value="Germany" {% if form_data.country.value == 'Germany' %}selected{% endif %}>Germany</option>
+                                <option value="France" {% if form_data.country.value == 'France' %}selected{% endif %}>France</option>
+                                <option value="China" {% if form_data.country.value == 'China' %}selected{% endif %}>China</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Second Column -->
+                    <div class="col-md-6">
+                        <!-- Invoice -->
+                        <div class="form-group" style="margin:0;">
+                            <input type="text" name="invoice" class="form-control" placeholder="Invoice Details" value="{{ form_data.invoice.value|default_if_none:'' }}" style=" width: 55%; height: 21px; border: 0.5px solid transparent;box-shadow: none;" maxlength="25" />
+                        </div>
+                        <!-- DateTime Field 1 -->
+                         
+        <div class="form-group" style="margin:0;">
+        <input type="date" 
+           name="datetime_field1" 
+           class="form-control" 
+        
+           value="{{ form_data.datetime_field1|date:'Y-m-d\TH:i' }}" style=" width: 55%; height: 21px;border: 0.5px solid transparent;font-family: Arial, sans-serif; box-shadow: none;" />
+        </div>  
+        
+        
+        <!-- DateTime Field 2 -->
+        <div class="form-group" style="margin:0;">
+        <input type="date" 
+           name="datetime_field2" 
+           class="form-control" 
+           value="{{ form_data.datetime_field2|date:'Y-m-d\TH:i' }}" style=" width: 55%; height: 21px;border: 0.5px solid transparent;box-shadow: none;" />
+        </div>
+        
+                    </div>
+                </div>
+              
+            </div>
+        
+            <input type="hidden" id="item_count" name="item_count" value="{{ item_count }}">
+        
+           
+            <!-- <div class="container mt-5"> -->
+                <div class="table-responsive">
+                    <table class="table table-bordered-custom mt-3">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th style="width:80px;">Description</th>
+                                <th  style="width:60px;" >Qty</th>
+                                <th  style="width:60px;">Rate</th>
+                                <th  style="width:60px;">GST(%)</th>
+                                <!-- <th style="width:60px;">SGST (%)</th>
+                                <th style="width:60px;">CGST (%)</th> -->
+                                <th  style="width:60px;">CESS</th>
+                                <th  style="width:80px;">Amount</th>
+                                <th  style="width:60px;">SGST </th>
+                                <th  style="width:60px;">CGST</th>
+                                <th  style="width:30px;">Total</th>
+                                <th style="width:60px;">Action</th>
+                               
+                            </tr>
+                        </thead>
+                        <tbody id="item-forms">
+                            {% for form in item_forms %}
+                            <tr class="item-form">
+                                <td style="width:50px;">{{ form.item_desc }}</td>
+                                <td style="width:50px;">{{ form.qty }}</td>
+                                <td style="width: 50px;">{{ form.rate }}</td>
+                                <td style="width: 50px;">{{ form.gst_rate }}</td>
+                                <!-- <td style="width: 50px;">{{ form.sgst }}</td>
+                                <td style="width: 50px;">{{ form.cgst }}</td> -->
+                                <td style="width: 50px;">{{ form.cess }}</td>
+                                <td class="item-total">0.00</td>
+                                <td class="item-sgst">0.00</td>
+                                <td class="item-cgst">0.00</td>
+                                <td class="item-grand-total">0.00</td>
+                                <td>
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeItemRow(this)">Remove</button>
+                                    <input type="hidden" name="remove_item_{{ forloop.counter0 }}" value="0">
+                                </td> 
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tr>
+                            <td><button type="button" class="btn btn-primary btn-custom" onclick="addItemRow()">Add Item</button></td>
+                            <td class="nowrap"> <button type="button" class="btn btn-secondary btn-custom" onclick="calculateTotals()">Calculate</button></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="text-center"><div id="total" class="totals" style="width: 10px; white-space: nowrap;"></div></td>
+                            <td></td>
+                        </tr>
+                    </table>
+                </div>
+            <!-- </div> -->
+       
+            <!-- <button type="button" class="btn btn-primary btn-custom" onclick="addItemRow()">Add Item</button>
+            <button type="button" class="btn btn-secondary btn-custom" onclick="calculateTotals()">Calculate Totals</button> -->
+         
+            <div id="total" class="totals"></div>
+            <div id="total_sgst" class="totals"></div>
+            <div id="total_cgst" class="totals"></div>
+      
+            <label for="id_notes"><b>Notes:</b></label>
+            <br>
+            <textarea id="id_notes" name="notes" rows="2" cols="60">{{ form_data.notes.value }}</textarea>
+            <br>
+            
+            <label for="id_terms_conditions"><b>Terms and Conditions:</b></label>
+            <br>
+            <textarea id="id_terms_conditions" name="terms_conditions" rows="2" cols="60">{{ form_data.terms_conditions.value }}</textarea>
+            <br>
+            <br>
+            <!-- <button type="submit" class="btn btn-success">Download</button>
+            <button class="btn btn-secondary btn-custom" onclick="window.print()">Print</button> -->
+            <div class="btn-group">
+                <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    Download/print
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <button type="submit" class="dropdown-item">
+                            <i class="fas fa-download"></i>  Download PDF</button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" onclick="window.print()">
+                            <i class="fas fa-print"></i>  Print Invoice</button>
+                    </li>
+                 
+                    <!-- Add more download options here if needed -->
+                </ul>
+            </div>                 
+        </form>
+        
+        <template class="item-form-template">
+            <tr class="item-form">
+                <td>{{ item_forms.0.item_desc }}</td>
+                <td>{{ item_forms.0.qty }}</td>
+                <td>{{ item_forms.0.rate }}</td>
+                <td>{{ item_forms.0.gst_rate }}</td>
+                <!-- <td>{{ item_forms.0.sgst }}</td>
+                <td>{{ item_forms.0.cgst }}</td> -->
+                <td>{{ item_forms.0.cess }}</td>
+                <td class="item-total">0.00</td>
+                <td class="item-sgst">0.00</td>
+                <td class="item-cgst">0.00</td>
+                <td class="item-grand-total">0.00</td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeItemRow(this)">Remove</button>
+                    <input type="hidden" name="remove_item_{{ forloop.counter0 }}" value="0">
+                </td>     
+            </tr>
+            
+          
+        </template>
+        
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+</body>
+</html>
+
+

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Expense Report List</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container">
+    <h2>Expense Reports</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Company Name</th>
+                <th>Your Name</th>
+                <th>Invoice ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td>{{ report.company_name }}</td>
+                <td>{{ report.your_name }}</td>
+                <td>{{ report.invoice_id }}</td>
+                <td>
+                    <a href="{% url 'generate_expense_report_pdf' report.id %}" class="btn btn-primary">Download PDF</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{% url 'expense_report_view' %}" class="btn btn-primary">Create New Report</a>
+</div>
+</body>
+</html>

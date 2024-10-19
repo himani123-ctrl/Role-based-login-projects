@@ -1,0 +1,254 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        body {
+            background: url("{% static 'images/bookwheels.jpg' %}");
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            flex-direction: column;
+            width:100%;
+            padding: 0%;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: hsl(0, 0%, 100%);
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-weight: bold;
+        }
+
+        .input-group {
+            width: 400px; /* Set width */
+        }
+
+        .form-control {
+            background-color: transparent; /* No background */
+            color: hsl(0, 0%, 100%);
+            color: #fff; /* Text color */
+            height: 50px; /* Increased height */
+            font-size: 1rem;
+            border-radius: 10px; /* Rounded corners */
+            padding-left: 40px; /* Space for the icon */
+        }
+
+        .form-control::placeholder {
+            color: hsla(0, 0%, 100%, 0.7);
+        }
+
+        .form-control:focus {
+            background-color: transparent; /* No background on focus */
+            outline: none; /* Remove default outline */
+            color: hsl(0, 0%, 100%);
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 10px; /* Position the icon */
+            top: 50%;
+            transform: translateY(-50%);
+            color: hsl(0, 0%, 100%); /* Icon color */
+        }
+
+        .btn-primary {
+            background-color: transparent; /* No background */
+            border: 2px solid #ffffff; /* Border color */
+            color: hsl(0, 0%, 100%); /* Text color */
+            height: 50px; /* Same height as input */
+            width: 300px; /* Same width as input */
+            border-radius: 10px; /* Rounded corners */
+            font-size: 1rem; /* Font size */
+        }
+
+        .btn-primary:hover {
+            background-color: transparent; /* No background on hover */
+            border-color: hsl(0, 0%, 100%); /* Darker border on hover */
+            color: hsl(0, 0%, 100%); 
+        }
+
+        .text-center a {
+            color: #ffffff;
+        }
+
+        .text-center a:hover {
+            text-decoration: underline;
+        }
+
+        .input-wrapper {
+            position: relative;
+            width: 100%; /* Full width */
+        }
+    </style>
+</head>
+<body>
+    <h1 class="text-center">Login</h1>
+    <form id="login-form" class="text-center">
+        <div class="mb-3 input-wrapper">
+            <i class="fas fa-user input-icon"></i>
+            <input type="text" id="username" class="form-control" placeholder="Username" required>
+        </div>
+        <div class="mb-5 input-wrapper">
+            <i class="fas fa-lock input-icon"></i>
+            <input type="password" id="password" class="form-control" placeholder="Password" required>
+        </div>
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary btn-sm">Login</button>
+        </div>
+    </form>
+    <p class="text-center mt-3 " style="color:white;">Don't have an account? <a href="{% url 'register' %}">Register here</a></p>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const csrfToken = '{{ csrf_token }}';
+        document.getElementById('login-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            };
+
+            fetch('http://127.0.0.1:8000/api/login/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.errors) {
+                    console.error('Login errors:', data.errors);
+                    alert('Error: ' + JSON.stringify(data.errors));
+                } else {
+                    alert(data.message);
+                    // Redirect based on user role
+                    switch (data.role) {
+                        case 'admin':
+                            window.location.href = '/admin_dashboard/';
+                            break;
+                        case 'user':
+                            window.location.href = '/user_dashboard/';
+                            break;
+                        case 'enterprise':
+                            window.location.href = '/enterprise_dashboard/';
+                            break;
+                        default:
+                            alert('Unknown role');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <h1 class="text-center mb-4">Login</h1>
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        {{ form.username }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        {{ form.password }}
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </div>
+                </form>
+                <p class="text-center mt-3">Don't have an account? <a href="{% url 'register' %}">Register here</a></p>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const csrfToken = '{{ csrf_token }}'; // Ensure this is rendered correctly
+        document.getElementById('login-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            };
+
+            fetch('http://127.0.0.1:8000/accounts/api/login/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken // Pass the CSRF token
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.errors) {
+                    console.error('Login errors:', data.errors);
+                    alert('Error: ' + JSON.stringify(data.errors));
+                } else {
+                    alert(data.message); // Show success message
+                    window.location.href = '/dashboard/'; // Redirect on success
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+    </script>
+</body>
+</html> -->
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    
+</head>
+<body>
+    <h1>Login</h1>
+    <form method="POST" action="">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Login</button>
+    </form>
+    <p>Don't have an account? <a href="{% url 'register' %}">Register here</a></p>
+</body>
+</html> -->

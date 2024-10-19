@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Package Report List</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container">
+    <h2 class="text-center">Package Reports</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Company Name</th>
+                <th>Your Name</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Country</th>
+                <th>Client Name</th>
+                <th>Order Date</th>
+                <th>Package Date</th>
+                <th>Sales Order</th>
+                <th>Invoice ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td>{{ report.id }}</td>
+                <td>{{ report.company_name }}</td>
+                <td>{{ report.your_name }}</td>
+                <td>{{ report.city }}</td>
+                <td>{{ report.state }}</td>
+                <td>{{ report.country }}</td>
+                <td>{{ report.client_name }}</td>
+                <td>{{ report.order_date }}</td>
+                <td>{{ report.package_date }}</td>
+                <td>{{ report.sales_order }}</td>
+                <td>{{ report.invoice_id }}</td>
+                <td>
+                    <a href="{% url 'generate_package_report_pdf' report.id %}" class="btn btn-primary">Download PDF</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="11" class="text-center">No package reports available.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+   
+</div>
+</body>
+</html>

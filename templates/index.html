@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test</title>
+</head>
+<body>
+    <h1>CORS Test Page</h1>
+    <button id="fetch-button">Fetch Data</button>
+    <pre id="response"></pre>
+
+    <script>
+        document.getElementById('fetch-button').addEventListener('click', () => {
+            fetch('http://localhost:8000/api/sample/')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    document.getElementById('response').textContent = 'Error: ' + error;
+                });
+        });
+    </script>
+</body>
+</html>
